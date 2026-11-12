@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PetBioScan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: phone-width app column, sticky top bar, bottom tab bar; views swap by #hash (QR deep links). */
+:root{
+  --bg:#F2F4FB; --surface:#FFFFFF; --surface-2:#E8EBF8; --ink:#121838; --muted:#566086; --line:#D9DEF0;
+  --accent:#2B3CE0; --accent-ink:#FFFFFF; --accent-soft:#E2E5FF;
+  --r:#E0444B; --r-soft:#FDE5E6; --s:#0E9F64; --s-soft:#DDF5EA; --warn:#C77A00; --warn-soft:#FFF1D6;
+  --shadow:0 1px 2px rgba(18,24,56,.06),0 6px 20px rgba(18,24,56,.06);
+  --f-display:"Unbounded","Onest",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C0F21; --surface:#161A33; --surface-2:#1F2445; --ink:#E9ECFA; --muted:#9DA5CC; --line:#2B3156;
+  --accent:#7684FF; --accent-ink:#0C0F21; --accent-soft:#232A5E;
+  --r:#FF6A70; --r-soft:#3A1C24; --s:#36D093; --s-soft:#123527; --warn:#FFBE4A; --warn-soft:#3A2C10;
+  --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C0F21; --surface:#161A33; --surface-2:#1F2445; --ink:#E9ECFA; --muted:#9DA5CC; --line:#2B3156;
+  --accent:#7684FF; --accent-ink:#0C0F21; --accent-soft:#232A5E;
+  --r:#FF6A70; --r-soft:#3A1C24; --s:#36D093; --s-soft:#123527; --warn:#FFBE4A; --warn-soft:#3A2C10;
+  --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+.app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{font-family:var(--f-display);font-weight:700;font-size:17px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink)}
+.brand-mark{width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.brand small{display:block;font-family:var(--f-body);font-weight:500;font-size:11px;color:var(--muted);letter-spacing:.02em}
+.back{border:0;background:var(--surface);box-shadow:var(--shadow);width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none}
+.sos-mini{margin-left:auto;border:0;background:var(--r);color:#fff;font-weight:700;font-size:13px;padding:8px 12px;border-radius:999px}
+main{flex:1;padding-block:4px 110px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.2;letter-spacing:-.015em}
+h2{font-family:var(--f-display);font-weight:500;font-size:17px;line-height:1.25}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--surface);border-radius:16px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;min-width:0}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.btn{border:0;border-radius:12px;padding:13px 16px;font-weight:700;background:var(--accent);color:var(--accent-ink);text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:var(--surface-2);color:var(--ink)}
+.btn.danger{background:var(--r);color:#fff}
+.btn.block{width:100%}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink)}
+.pill.r{background:var(--r-soft);color:var(--r)} .pill.s{background:var(--s-soft);color:var(--s)} .pill.w{background:var(--warn-soft);color:var(--warn)}
+.alert{border-radius:14px;padding:14px;display:flex;gap:12px;align-items:flex-start}
+.alert.r{background:var(--r-soft)} .alert.w{background:var(--warn-soft)} .alert.s{background:var(--s-soft)} .alert.a{background:var(--accent-soft)}
+.alert b.t{display:block;margin-bottom:2px}
+.alert .ic{flex:none;width:22px;height:22px;margin-top:2px}
+.alert.r .ic{color:var(--r)} .alert.w .ic{color:var(--warn)} .alert.s .ic{color:var(--s)} .alert.a .ic{color:var(--accent)}
+
+/* Home */
+.hero-banner{background:var(--accent);color:var(--accent-ink);border-radius:20px;padding:18px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;text-decoration:none}
+.hero-banner .big{font-family:var(--f-display);font-weight:700;font-size:44px;line-height:1}
+.hero-banner p{font-size:14px;line-height:1.35}
+.hero-banner span.go{display:inline-block;margin-top:6px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.sos{border:0;width:100%;background:var(--r);color:#fff;border-radius:20px;padding:18px;text-align:left;display:flex;gap:14px;align-items:center}
+.sos .sos-ic{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;flex:none}
+.sos b{font-family:var(--f-display);font-size:17px;font-weight:700;display:block}
+.sos span{font-size:13px;opacity:.92}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow);text-decoration:none;color:var(--ink);display:flex;flex-direction:column;gap:8px;min-height:112px}
+.tile .ti{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.tile b{font-size:14px;line-height:1.25}
+.tile span{font-size:12px;color:var(--muted);line-height:1.3}
+
+/* Wizard */
+.progress{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .25s}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;text-align:left;display:flex;gap:12px;align-items:center;font-weight:600}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+.opt[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.opt small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.wiz-nav{display:flex;gap:10px}
+.wiz-nav .btn{flex:1}
+.level{border-radius:18px;padding:18px;color:#fff;display:flex;flex-direction:column;gap:6px}
+.level.l4{background:#B3141B} .level.l3{background:var(--r)} .level.l2{background:#D67A00} .level.l1{background:var(--s)}
+.level .lt{font-family:var(--f-display);font-size:20px;font-weight:700}
+ul.clean{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+
+/* Timer + checklist */
+.check{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:12px;background:var(--surface-2);border:0;text-align:left;width:100%}
+.check .cb{width:24px;height:24px;border-radius:8px;border:2px solid var(--muted);flex:none;display:grid;place-items:center;margin-top:1px}
+.check[aria-pressed="true"]{opacity:.65}
+.check[aria-pressed="true"] .cb{background:var(--s);border-color:var(--s);color:#fff}
+.check[aria-pressed="true"] .ct{text-decoration:line-through}
+.check .n{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.timer-wrap{display:grid;place-items:center;position:relative}
+.timer-wrap svg{width:min(260px,70vw);height:auto}
+.timer-read{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.timer-read .tt{font-family:var(--f-mono);font-weight:700;font-size:44px}
+details{background:var(--surface-2);border-radius:12px;padding:12px}
+summary{font-weight:700;cursor:pointer}
+
+/* Scanner */
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px}
+.search input:focus{border-color:var(--accent);outline:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar-row{display:grid;grid-template-columns:118px 1fr auto;gap:8px;align-items:center;font-size:13px}
+.bar-row i{font-style:italic}
+.bar-row .cell{height:24px;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-family:var(--f-mono);font-size:12px;font-weight:700}
+.cell.R{background:var(--r-soft);color:var(--r)} .cell.S{background:var(--s-soft);color:var(--s)}
+
+/* Heatmap */
+.hm-scroll{overflow-x:auto;margin-inline:-4px;padding:4px}
+.hm{display:grid;grid-template-columns:96px repeat(6,minmax(52px,1fr));gap:4px;min-width:420px}
+.hm .h{font-size:10px;overflow-wrap:anywhere;font-weight:700;color:var(--muted);display:flex;align-items:end;justify-content:center;text-align:center;line-height:1.15;padding-bottom:4px;font-style:italic}
+.hm .rl{font-size:12px;font-weight:700;display:flex;flex-direction:column;justify-content:center;line-height:1.15}
+.hm .rl small{font-weight:400;color:var(--muted);font-size:10px}
+.hm .c{border-radius:8px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:12px;font-weight:700}
+.hm .c small{font-size:10px;opacity:.85}
+.hm .c.R{background:var(--r);color:#fff} .hm .c.S{background:var(--s);color:#fff}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+.pie-row{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center}
+.survey-q{display:flex;flex-direction:column;gap:6px}
+.stackbar{display:flex;height:26px;border-radius:8px;overflow:hidden;gap:2px}
+.stackbar div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:var(--f-mono);min-width:0}
+
+/* KB */
+.bug{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;text-decoration:none;color:var(--ink)}
+.bug-dot{width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
+.danger-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px}
+.mini-strip{display:flex;gap:3px}
+.mini-strip span{width:12px;height:12px;border-radius:3px}
+.mini-strip .R{background:var(--r)} .mini-strip .S{background:var(--s)}
+.animals{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.animals div{background:var(--surface-2);border-radius:10px;padding:8px 4px;text-align:center;font-size:11px;line-height:1.2}
+.animals div.on{background:var(--accent);color:var(--accent-ink);font-weight:700}
+
+/* Map */
+.map-wrap{position:relative;background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:10px;overflow:hidden}
+.map-wrap svg{width:100%;height:auto;display:block}
+.district{cursor:pointer;transition:opacity .15s}
+.district:hover{opacity:.85}
+.seg{display:flex;background:var(--surface-2);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;padding:8px;border-radius:9px;font-weight:700;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--surface);box-shadow:var(--shadow)}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th,table.t td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+table.t td.num{text-align:right;font-family:var(--f-mono)}
+
+/* Pet */
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+.field input,.field select{border:2px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-weight:400}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.notif{background:var(--surface);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:grid;grid-template-columns:36px 1fr;gap:10px}
+.notif .ni{width:36px;height:36px;border-radius:10px;background:var(--accent);display:grid;place-items:center}
+.notif .nh{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.notif p{font-size:13px;line-height:1.4}
+.status-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.status-row:last-child{border-bottom:0}
+
+/* One Health */
+.oh svg{width:100%;height:auto}
+.flow{stroke-dasharray:6 8;animation:dash 1.4s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-28}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+
+/* Bottom nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 10px;font-size:11px;font-weight:600;color:var(--muted);text-decoration:none}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a.on{color:var(--accent)}
+nav.tabs a.sos-tab{color:var(--r)}
+.foot{font-size:11px;color:var(--muted);text-align:center;line-height:1.4}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13px;font-weight:600;z-index:20;max-width:90vw}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-pill" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="8" width="19" height="8" rx="4" transform="rotate(-45 12 12)"/><path d="m8.5 8.5 7 7" transform="translate(0 0)"/></g></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2zM4 21V5M8 7h8"/></symbol>
+    <symbol id="i-paw" viewBox="0 0 24 24"><g fill="currentColor"><ellipse cx="6" cy="10" rx="2" ry="2.6"/><ellipse cx="10" cy="6" rx="2" ry="2.6"/><ellipse cx="14" cy="6" rx="2" ry="2.6"/><ellipse cx="18" cy="10" rx="2" ry="2.6"/><path d="M12 11c-3 0-6 4-6 6.5 0 1.6 1.3 2.5 3 2.5 1.2 0 2-.5 3-.5s1.8.5 3 .5c1.7 0 3-.9 3-2.5C18 15 15 11 12 11z"/></g></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M11 10h2v8h-2zm0-4h2v2h-2z" fill="var(--surface)"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m7 12 3.5 3.5L17 9" fill="none" stroke="var(--surface)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-tick" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-quiz" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></g></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20"/></g></symbol>
+    <symbol id="i-steth" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 3v6a5 5 0 0 0 10 0V3"/><path d="M10 14v2a5 5 0 0 0 10 0v-2"/><circle cx="20" cy="12" r="2"/></g></symbol>
+    <symbol id="i-micro" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></g></symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></g></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.5-2.5h-5A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5-6.7V3a2 2 0 1 0-4 0v1.3A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <button class="back" id="backBtn" aria-label="Назад" hidden><svg width="20" height="20"><use href="#i-back"/></svg></button>
+    <a class="brand" href="#home" id="brand">
+      <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg></span>
+      <span>PetBioScan<small>Аптечка без ошибок</small></span>
+    </a>
+    <button class="sos-mini" id="sosMini">SOS · укус</button>
+  </header>
+  <main id="view" aria-live="polite"></main>
+</div>
+
+<nav class="tabs" aria-label="Разделы">
+  <div class="in">
+    <a href="#home" data-tab="home"><svg><use href="#i-home"/></svg>Главная</a>
+    <a href="#sos" data-tab="sos" class="sos-tab"><svg><use href="#i-plus"/></svg>Помощь</a>
+    <a href="#scan" data-tab="scan"><svg><use href="#i-pill"/></svg>Аптечка</a>
+    <a href="#kb" data-tab="kb"><svg><use href="#i-book"/></svg>Знания</a>
+    <a href="#pet" data-tab="pet"><svg><use href="#i-paw"/></svg>Питомец</a>
+  </div>
+</nav>
+
+<script>
+"use strict";
+/* ================== ДАННЫЕ ИССЛЕДОВАНИЯ (Грекова В.А., 2026) ================== */
+const ABX = [
+  {id:"amp", name:"Ампициллин",  cls:"β-лактамы",      disk:"10 мкг"},
+  {id:"gen", name:"Гентамицин",  cls:"аминогликозиды", disk:"10 мкг"},
+  {id:"dox", name:"Доксициклин", cls:"тетрациклины",   disk:"30 мкг"},
+  {id:"cli", name:"Клиндамицин", cls:"линкозамиды",    disk:"2 мкг"},
+  {id:"azi", name:"Азитромицин", cls:"макролиды",      disk:"15 мкг"},
+];
+// Рис. 10: диаметр зоны подавления роста (мм) и интерпретация EUCAST
+const BACT = [
+  {id:"epi", lat:"S. epidermidis", full:"Staphylococcus epidermidis", ru:"Эпидермальный стафилококк", gram:"Гр+", shape:"кокки в гроздьях",
+   hosts:[1,1,1,1], danger:1, color:"#8C95B8",
+   ast:{amp:[14,"R"],gen:[25,"S"],dox:[28,"S"],cli:[6,"R"],azi:[27,"S"]},
+   about:"Коагулазонегативный стафилококк, постоянный обитатель кожи и слизистых. Найден у всех четырёх животных.",
+   human:"Обычно безопасен для здоровых людей, но может вызывать инфекции у людей с ослабленным иммунитетом и при попадании в рану.",
+   lab:"На МПА мелкие белые гладкие колонии 1–2 мм. На Uriselect 4 белые колонии. Маннит не ферментирует."},
+  {id:"sap", lat:"S. saprophyticus", full:"Staphylococcus saprophyticus", ru:"Сапрофитный стафилококк", gram:"Гр+", shape:"кокки в гроздьях",
+   hosts:[1,1,1,1], danger:1, color:"#C287C8",
+   ast:{amp:[32,"S"],gen:[23,"S"],dox:[26,"S"],cli:[9,"R"],azi:[13,"R"]},
+   about:"Коагулазонегативный стафилококк. Найден у всех четырёх животных.",
+   human:"Известный возбудитель инфекций мочевыводящих путей у человека.",
+   lab:"На Uriselect 4 розовые колонии. Крупная зона к ампициллину 32 мм: чувствителен."},
+  {id:"pse", lat:"S. pseudintermedius", full:"Staphylococcus pseudintermedius", ru:"Псевдпромежуточный стафилококк", gram:"Гр+", shape:"кокки в гроздьях и парах",
+   hosts:[1,1,0,0], danger:2, color:"#E8A33D",
+   ast:{amp:[12,"R"],gen:[21,"S"],dox:[24,"S"],cli:[6,"R"],azi:[10,"R"]},
+   about:"Коагулазоположительный стафилококк, специфичный для собак: найден только у бульдога и таксы. По литературе встречается в пасти у 40–90% собак.",
+   human:"При укусах, облизывании, попадании слюны на повреждённую кожу вызывает раневые инфекции, которые трудно лечить простыми антибиотиками. По российским данным устойчивость к макролидам и линкозамидам достигает 60–70%.",
+   lab:"На МПА кремовые колонии 2–4 мм. На MSA ферментирует маннит (среда желтеет). Профиль устойчивости MLS: макролиды + линкозамиды."},
+  {id:"fae", lat:"E. faecalis", full:"Enterococcus faecalis", ru:"Фекальный энтерококк", gram:"Гр+", shape:"кокки в парах и цепочках",
+   hosts:[0,0,0,1], danger:2, color:"#2EB5C7",
+   ast:{amp:[25,"S"],gen:[9,"R"],dox:[13,"R"],cli:[6,"R"],azi:[7,"R"]},
+   about:"Энтерококк с зоонозным потенциалом. Найден у беспородной кошки 7 лет. Профиль 4R/1S: чувствителен только к ампициллину.",
+   human:"У человека вызывает инфекции мочевыводящих путей, эндокардит и сепсис. Описаны одинаковые генотипы ванкомицин-резистентных энтерококков (VRE) у питомцев и их владельцев.",
+   lab:"На Uriselect 4 бирюзово-голубые колонии. При микроскопии кокки в цепочках, а не в гроздьях."},
+  {id:"aer", lat:"P. aeruginosa", full:"Pseudomonas aeruginosa", ru:"Синегнойная палочка", gram:"Гр−", shape:"палочки",
+   hosts:[0,1,0,0], danger:3, color:"#1F9E7A",
+   ast:{amp:[6,"R"],gen:[8,"R"],dox:[6,"R"],cli:[6,"R"],azi:[6,"R"]},
+   about:"Опасный оппортунист с природной полирезистентностью. Выделена у возрастной таксы 13 лет. Устойчива ко ВСЕМ пяти препаратам панели (5/5 R).",
+   human:"Критически опасна при попадании в раны и ожоги, для людей с ослабленным иммунитетом и пациентов реанимации. Требует срочного визита к врачу.",
+   lab:"Крупные слизистые колонии 3–5 мм с сине-зелёным пигментом. Характерный сладковатый запах."},
+  {id:"mir", lat:"P. mirabilis", full:"Proteus mirabilis", ru:"Протей", gram:"Гр−", shape:"палочки",
+   hosts:[1,0,0,0], danger:3, color:"#B5653A",
+   ast:{amp:[11,"R"],gen:[22,"S"],dox:[9,"R"],cli:[6,"R"],azi:[7,"R"]},
+   about:"Роевой зоонозный патоген. Выделен у молодого французского бульдога 3 лет: значит, опасная флора бывает и у молодых животных.",
+   human:"Возбудитель раневых инфекций и инфекций мочевыводящих путей. Природно устойчив к тетрациклинам. В исследовании сохранил чувствительность только к гентамицину.",
+   lab:"Роевой рост концентрическими кольцами на МПА. На Uriselect 4 оранжево-коричневые колонии. Выраженный гнилостный запах."},
+];
+const ANIMALS = ["Фр. бульдог, 3 г.","Такса, 13 л.","Шотл. кошка, 2 г.","Беспор. кошка, 7 л."];
+const DOG_BACT = BACT.filter(b=>b.hosts[0]||b.hosts[1]).map(b=>b.id);   // epi,sap,pse,aer,mir
+const CAT_BACT = BACT.filter(b=>b.hosts[2]||b.hosts[3]).map(b=>b.id);   // epi,sap,fae
+const B = id => BACT.find(b=>b.id===id);
+const A = id => ABX.find(a=>a.id===id);
+function countS(abx, ids){ return ids.filter(id=>B(id).ast[abx][1]==="S").length; }
+
+// Препараты: МНН и торговые названия (поиск в «Умном сканере»)
+const DRUGS = [
+  {key:"azi", inn:"Азитромицин", names:["азитромицин","сумамед","азитрокс","хемомицин","зитролид","азитрал","зи-фактор","azithromycin"], tested:true},
+  {key:"cli", inn:"Клиндамицин", names:["клиндамицин","далацин","клиндацин","зеркалин","clindamycin"], tested:true},
+  {key:"amp", inn:"Ампициллин", names:["ампициллин","ампициллина тригидрат","ampicillin"], tested:true},
+  {key:"dox", inn:"Доксициклин", names:["доксициклин","юнидокс","юнидокс солютаб","вибрамицин","doxycycline"], tested:true},
+  {key:"gen", inn:"Гентамицин", names:["гентамицин","гентамицина сульфат","gentamicin"], tested:true},
+  {key:"azi", inn:"Кларитромицин", names:["кларитромицин","клацид","фромилид","клабакс"], tested:false, byClass:"макролиды", note:"Тот же класс, что азитромицин (макролиды). В исследовании азитромицин не подействовал на 5 из 6 штаммов, а устойчивость к макролидам обычно перекрёстная."},
+  {key:"azi", inn:"Эритромицин", names:["эритромицин"], tested:false, byClass:"макролиды", note:"Тот же класс, что азитромицин (макролиды). Перекрёстная MLS-устойчивость (erm-гены) делает его ненадёжным."},
+  {key:"cli", inn:"Линкомицин", names:["линкомицин"], tested:false, byClass:"линкозамиды", note:"Тот же класс, что клиндамицин (линкозамиды). Клиндамицин не подействовал ни на один из 6 штаммов."},
+  {key:"amp", inn:"Амоксициллин", names:["амоксициллин","флемоксин","флемоксин солютаб","амосин","оспамокс","экоболь"], tested:false, byClass:"β-лактамы", note:"Близкий родственник ампициллина. Ампициллин подействовал только на 2 из 6 штаммов."},
+  {key:null, inn:"Амоксициллин + клавулановая кислота", names:["амоксиклав","аугментин","флемоклав","экоклав","панклав"], tested:false, note:"В исследовании не тестировался. Решение о профилактическом антибиотике после укуса принимает только врач."},
+  {key:null, inn:"Ципрофлоксацин", names:["ципрофлоксацин","ципролет","ципробай","цифран"], tested:false, note:"В исследовании не тестировался. Фторхинолоны имеют серьёзные побочные эффекты и противопоказаны детям."},
+  {key:null, inn:"Левомеколь (хлорамфеникол)", names:["левомеколь","левомицетин","хлорамфеникол"], tested:false, note:"В исследовании не изучался. Мазь не заменяет промывание раны и осмотр врача."},
+  {key:null, inn:"Банеоцин (неомицин + бацитрацин)", names:["банеоцин"], tested:false, note:"В исследовании не изучался. Местное средство не защищает от бешенства и глубокой инфекции после укуса."},
+  {key:"ok", inn:"Хлоргексидин 0,05%", names:["хлоргексидин","хлоргексидина биглюконат","chlorhexidine"], tested:false, antiseptic:true, note:"Рекомендован в работе для обработки раны после промывания водой с мылом."},
+  {key:"ok", inn:"Мирамистин", names:["мирамистин"], tested:false, antiseptic:true, note:"Рекомендован в работе для обработки раны после промывания водой с мылом."},
+  {key:"weak", inn:"Перекись водорода / спирт / йод", names:["перекись","перекись водорода","спирт","йод","зелёнка","зеленка","бриллиантовый зелёный"], tested:false, antiseptic:true, note:"Слабо действуют на грамотрицательную флору (протей, синегнойная палочка). Можно обработать края раны, но главное: промывание водой с мылом и хлоргексидин/мирамистин."},
+];
+
+/* ================== УТИЛИТЫ ================== */
+const $ = (s,el=document)=>el.querySelector(s);
+const view = $("#view");
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem("pbs_"+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem("pbs_"+k,JSON.stringify(v)); }catch(e){} }
+};
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+const icon = (id,size=22)=>`<svg class="ic" width="${size}" height="${size}"><use href="#${id}"/></svg>`;
+function alertBox(kind,title,body){ const ic={r:"i-alert",w:"i-alert",s:"i-ok",a:"i-info"}[kind]; return `<div class="alert ${kind}">${icon(ic)}<div><b class="t">${title}</b>${body}</div></div>`; }
+const DISCLAIMER = `<p class="foot">Прототип исследовательского проекта. Приложение не ставит диагноз и не заменяет врача.<br>Экстренная помощь: <b class="mono">112</b> · скорая <b class="mono">103</b></p>`;
+
+/* ================== РОУТЕР ================== */
+const ROUTES = {};
+let timerState = null;
+function go(name){ location.hash = name; }
+function render(){
+  const raw = (location.hash||"#home").slice(1) || "home";
+  const [name,arg] = raw.startsWith("kb-") ? ["kbitem", raw.slice(3)] : [raw,null];
+  const fn = ROUTES[name] || ROUTES.home;
+  if(timerState && name!=="timer"){ /* таймер продолжает считать в фоне */ }
+  view.innerHTML = "";
+  fn(arg);
+  $("#backBtn").hidden = (name==="home");
+  document.querySelectorAll("nav.tabs a").forEach(a=>{
+    const t=a.dataset.tab; a.classList.toggle("on", t===name || (t==="kb"&&name==="kbitem") || (t==="sos"&&name==="timer"));
+  });
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",render);
+$("#backBtn").onclick=()=>{ if(history.length>1) history.back(); else go("home"); };
+$("#sosMini").onclick=()=>go("sos");
+
+/* ================== ГЛАВНАЯ ================== */
+ROUTES.home = ()=>{
+  view.innerHTML = `
+  <a class="hero-banner" href="#quiz">
+    <div class="big mono">67%</div>
+    <div><p><b>пар «бактерия — антибиотик» оказались устойчивыми</b> в исследовании микрофлоры пасти домашних животных (20 из 30).</p><span class="go">Узнайте свой риск</span></div>
+  </a>
+  <button class="sos" onclick="go('sos')">
+    <span class="sos-ic"><svg width="28" height="28"><use href="#i-plus"/></svg></span>
+    <span><b>Укусили или поцарапали?</b><span>Пошаговый помощник: что делать прямо сейчас</span></span>
+  </button>
+  <div class="tiles">
+    ${tile("scan","i-pill","Умный сканер аптечки","Поможет ли лекарство из дома")}
+    ${tile("timer","i-timer","Таймер обработки раны","Промывание по шагам")}
+    ${tile("symptoms","i-steth","Симптом-чекер","Что значит запах, гной, отёк")}
+    ${tile("kb","i-micro","Кто живёт в пасти питомца?","6 бактерий из исследования")}
+    ${tile("data","i-chart","Результаты исследования","Тепловая карта и опрос")}
+    ${tile("onehealth","i-globe","Почему это опасно?","Концепция «Единое здоровье»")}
+    ${tile("map","i-map","Карта биобезопасности","Риски по районам Москвы")}
+    ${tile("pet","i-paw","Дневник питомца","Чистка зубов, осмотры, напоминания")}
+  </div>
+  <div class="card">
+    <span class="eyebrow">Главный вывод исследования</span>
+    <p>Популярные препараты домашней аптечки не работают против бактерий из пасти животных: <b>клиндамицин не подействовал ни на один штамм (0 из 6)</b>, азитромицин только на 1 из 6.</p>
+    <a class="btn ghost" href="#data">Смотреть данные</a>
+  </div>
+  ${DISCLAIMER}`;
+};
+const tile=(r,ic,t,s)=>`<a class="tile" href="#${r}"><span class="ti"><svg width="20" height="20"><use href="#${ic}"/></svg></span><b>${t}</b><span>${s}</span></a>`;
+
+/* ================== ПОМОЩНИК ПРИ УКУСЕ (алгоритм триажа) ================== */
+const SOS_Q = [
+  {id:"event", q:"Что случилось?", opts:[["bite","Укус","кожа прокушена или есть следы зубов"],["scratch","Царапина"],["lick","Облизал ранку, губы или глаза","слюна попала на повреждённую кожу или слизистую"]]},
+  {id:"animal", q:"Какое животное?", opts:[["owndog","Своя собака"],["owncat","Своя кошка"],["otherpet","Чужое домашнее животное"],["stray","Бездомное или дикое животное","лиса, ёж, летучая мышь и др."]]},
+  {id:"victim", q:"Кто пострадал?", opts:[["child","Ребёнок до 14 лет"],["adult","Взрослый"],["elder","Человек старше 65 лет"],["weak","Беременность, диабет, слабый иммунитет","химиотерапия, гормоны, ВИЧ"]]},
+  {id:"place", q:"Где рана?", opts:[["hand","Кисть или пальцы"],["face","Лицо, голова или шея"],["joint","Около сустава"],["body","Рука, нога или туловище"]], skipIf:a=>a.event==="lick"},
+  {id:"time", q:"Сколько времени прошло?", opts:[["t0","Меньше 2 часов"],["t1","От 2 до 8 часов"],["t2","От 8 до 24 часов"],["t3","Больше суток"]]},
+  {id:"signs", q:"Что вы видите сейчас?", multi:true, hint:"Можно выбрать несколько", opts:[
+    ["bleed","Кровь не останавливается 10 минут"],["deep","Глубокая колотая рана"],["swell","Отёк"],["red","Покраснение расширяется"],
+    ["pus","Гной жёлто-зелёного цвета"],["putrid","Гнилостный запах из раны"],["blue","Сине-зелёный гной или сладковатый запах"],
+    ["fever","Температура выше 38 °C"],["streak","Красные полосы от раны"],["none","Ничего из этого"]]},
+  {id:"rabies", q:"Животное привито от бешенства?", opts:[["yes","Да, есть ветпаспорт с отметкой"],["unk","Не знаю"],["no","Нет"]]},
+  {id:"pet", q:"Животному больше 7 лет или у него зубной камень, запах из пасти?", opts:[["old","Да"],["young","Нет"],["unk","Не знаю"]], hint:"В исследовании синегнойная палочка найдена у таксы 13 лет"},
+  {id:"tetanus", q:"Прививка от столбняка была за последние 10 лет?", opts:[["yes","Да"],["unk","Не помню"],["no","Нет"]], skipIf:a=>a.event==="lick"},
+];
+let sos = {i:0, a:{}};
+ROUTES.sos = ()=>{ if(sos.done){ return renderSosResult(); } renderSosStep(); };
+function activeQs(){ return SOS_Q.filter(q=>!(q.skipIf&&q.skipIf(sos.a))); }
+function renderSosStep(){
+  const qs = activeQs(); const q = qs[sos.i]; const val = sos.a[q.id];
+  view.innerHTML = `
+  <div class="stack">
+    <div class="row" style="justify-content:space-between"><span class="eyebrow">Помощник при укусе · шаг ${sos.i+1} из ${qs.length}</span><button class="chip" id="sosReset">Сначала</button></div>
+    <div class="progress"><i style="width:${(sos.i/qs.length)*100}%"></i></div>
+  </div>
+  <h1>${q.q}</h1>
+  ${q.hint?`<p class="muted small">${q.hint}</p>`:""}
+  <div class="opts">${q.opts.map(([v,l,s])=>{
+    const on = q.multi ? (val||[]).includes(v) : val===v;
+    return `<button class="opt" data-v="${v}" aria-pressed="${on}"><span class="box">${on?'<svg width="14" height="14"><use href="#i-tick"/></svg>':""}</span><span>${l}${s?`<small>${s}</small>`:""}</span></button>`;}).join("")}</div>
+  <div class="wiz-nav">
+    ${sos.i>0?`<button class="btn ghost" id="prev">Назад</button>`:""}
+    ${q.multi?`<button class="btn" id="next">Далее</button>`:""}
+  </div>
+  ${alertBox("r","Сильное кровотечение?","Прижмите рану чистой тканью и звоните <b class='mono'>112</b> или <b class='mono'>103</b>. Не ждите конца опроса.")}`;
+  view.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const v=b.dataset.v;
+    if(q.multi){
+      let arr = sos.a[q.id]||[];
+      if(v==="none") arr = arr.includes("none")?[]:["none"];
+      else { arr = arr.filter(x=>x!=="none"); arr = arr.includes(v)?arr.filter(x=>x!==v):[...arr,v]; }
+      sos.a[q.id]=arr; renderSosStep();
+    } else { sos.a[q.id]=v; nextStep(); }
+  });
+  const n=$("#next"); if(n) n.onclick=()=>{ if(!(sos.a[q.id]||[]).length){ toast("Выберите хотя бы один вариант"); return;} nextStep(); };
+  const p=$("#prev"); if(p) p.onclick=()=>{ sos.i--; renderSosStep(); };
+  $("#sosReset").onclick=()=>{ sos={i:0,a:{}}; renderSosStep(); };
+}
+function nextStep(){ const qs=activeQs(); if(sos.i<qs.length-1){ sos.i++; renderSosStep(); } else { sos.done=true; store.set("lastSos",sos.a); renderSosResult(); } }
+
+/* Алгоритм оценки риска: возвращает уровень 1–4, причины и предупреждения */
+function triage(a){
+  const s = a.signs||[]; const reasons=[]; let level=1;
+  const up=(l,why)=>{ if(l>level) level=l; reasons.push([l,why]); };
+  const isDog = a.animal==="owndog" || a.animal==="otherpet" || a.animal==="stray";
+  const isCat = a.animal==="owncat";
+  // 4 — экстренно
+  if(s.includes("bleed")) up(4,"кровотечение не останавливается");
+  if(s.includes("streak")) up(4,"красные полосы от раны: инфекция распространяется по лимфатическим сосудам");
+  if(s.includes("fever") && (s.includes("red")||s.includes("swell")||s.includes("pus"))) up(4,"температура вместе с признаками раневой инфекции");
+  if(a.event==="bite" && a.place==="face" && a.victim==="child") up(4,"укус лица у ребёнка");
+  // 3 — травмпункт сегодня, как можно скорее
+  if(a.animal==="stray") up(3,"бездомное или дикое животное: риск бешенства, нужна оценка в травмпункте");
+  if(a.rabies!=="yes" && a.event!=="lick") up(3,"нет подтверждённой прививки животного от бешенства");
+  if(a.rabies!=="yes" && a.event==="lick" && (a.animal==="stray"||a.animal==="otherpet")) up(3,"слюна непривитого животного на слизистой: риск бешенства");
+  if(a.event==="bite" && (a.place==="hand"||a.place==="face"||a.place==="joint")) up(3,"укус кисти, лица или сустава: высокий риск осложнений");
+  if(a.event==="bite" && isCat) up(3,"укус кошки: узкие глубокие раны часто нагнаиваются");
+  if(s.includes("deep")) up(3,"глубокая колотая рана");
+  if(["pus","putrid","blue","red","swell"].some(x=>s.includes(x))) up(3,"признаки раневой инфекции");
+  if(s.includes("fever")) up(3,"повышенная температура");
+  if(a.victim==="weak"||a.victim==="elder") up(3,"пострадавший в группе риска");
+  if(a.victim==="child" && a.event!=="lick") up(3,"пострадал ребёнок");
+  // 2 — обратиться к врачу в течение суток
+  if(a.event==="bite") up(2,"любой укус нужно показать врачу в течение суток");
+  if(a.event==="lick") up(2,"слюна животного попала на повреждённую кожу или слизистую");
+  if(a.time==="t2"||a.time==="t3") up(2,"прошло больше 8 часов: при укусе риск нагноения выше");
+  if(a.pet==="old") up(2,"у возрастных животных с зубным камнем выше риск грамотрицательной флоры");
+  if(a.tetanus && a.tetanus!=="yes" && a.event!=="lick") up(2,"нет данных о прививке от столбняка за 10 лет");
+  // Вероятная флора по данным работы
+  const flora = isCat ? CAT_BACT : DOG_BACT;
+  const hints=[];
+  if(s.includes("putrid")) hints.push("mir");
+  if(s.includes("blue")) hints.push("aer");
+  if(isDog && a.pet==="old" && !hints.includes("aer")) hints.push("aer");
+  if(isDog) hints.push("pse");
+  if(isCat) hints.push("fae");
+  return {level, reasons:reasons.sort((x,y)=>y[0]-x[0]), flora, hints:[...new Set(hints)], isDog, isCat};
+}
+const LEVELS = {
+  4:{cls:"l4",t:"Экстренно: звоните 112 / 103",d:"Окажите первую помощь и вызывайте скорую. Не везите пострадавшего сами, если ему становится хуже."},
+  3:{cls:"l3",t:"Высокий риск: травмпункт сегодня",d:"Обработайте рану и поезжайте в травмпункт как можно скорее. Иммуноглобулин против бешенства эффективнее всего в первые сутки и вводится не позднее 3 суток после укуса."},
+  2:{cls:"l2",t:"Средний риск: к врачу в течение суток",d:"Обработайте рану. Покажите её врачу или в травмпункте: он решит, нужны ли прививки и лекарства."},
+  1:{cls:"l1",t:"Низкий риск: обработка дома и наблюдение",d:"Обработайте рану и наблюдайте 48 часов. При отёке, покраснении, гное или температуре обратитесь к врачу."},
+};
+function renderSosResult(){
+  const a=sos.a, r=triage(a), L=LEVELS[r.level];
+  const azS = countS("azi", r.flora), clS=countS("cli", r.flora), n=r.flora.length;
+  view.innerHTML = `
+  <div class="level ${L.cls}"><span class="eyebrow" style="color:#fff;opacity:.85">Результат оценки</span><span class="lt">${L.t}</span><p>${L.d}</p></div>
+  ${r.level>=3?`<div class="row"><span class="pill">Экстренно: <b class="mono">112</b></span><span class="pill">Скорая: <b class="mono">103</b></span></div>`:""}
+  <a class="btn danger block" href="#timer"><svg width="20" height="20"><use href="#i-timer"/></svg>Начать обработку раны</a>
+  ${alertBox("r","Не давайте азитромицин и клиндамицин до визита к врачу",
+    `В исследовании бактерии из пасти ${r.isCat?"кошек":"собак"} оказались устойчивы: азитромицин подавил ${azS} из ${n} штаммов, клиндамицин ${clS} из ${n}${r.isDog?". <i>S. pseudintermedius</i>, типичный стафилококк собак, устойчив к обоим":""}. Приём «наугад» только помогает бактериям стать сильнее. Антибиотик назначает врач, лучше после бакпосева.`)}
+  <div class="card"><h2>Почему такой уровень</h2><ul class="clean">${r.reasons.slice(0,6).map(([l,w])=>`<li>${w}</li>`).join("")}</ul></div>
+  ${r.hints.length?`<div class="card"><h2>Кто может быть в ране</h2><p class="muted small">По данным исследования (предварительная фенотипическая идентификация). Точно определит только бакпосев.</p>
+    ${r.hints.map(id=>{const b=B(id); return `<a class="bug" href="#kb-${id}"><span class="bug-dot" style="background:${b.color}22;color:${b.color}"><svg width="22" height="22"><use href="#i-micro"/></svg></span><span><b><i>${b.lat}</i></b><br><span class="small muted">${hintText(id,a)}</span></span>${strip(b)}</a>`;}).join("")}</div>`:""}
+  ${r.isCat?alertBox("w","Укус кошки: важно знать","Исследование не охватывало пастерелл и анаэробные бактерии, главных возбудителей нагноения после укусов кошек. Поэтому любой укус кошки нужно показать врачу."):""}
+  ${(a.rabies!=="yes"||a.animal==="stray")&&a.event!=="lick"?alertBox("a","Бешенство","Если животное своё или известно хозяину, за ним наблюдают 10 дней. Сообщите врачу, где можно найти животное. Рану в первые 3 дня обычно не зашивают."):""}
+  ${a.tetanus&&a.tetanus!=="yes"&&a.event!=="lick"?alertBox("a","Столбняк","Скажите врачу, что прививки от столбняка за последние 10 лет не было или вы не помните."):""}
+  <div class="wiz-nav"><button class="btn ghost" id="again">Пройти заново</button><a class="btn ghost" href="#scan">Проверить лекарство</a></div>
+  ${DISCLAIMER}`;
+  $("#again").onclick=()=>{ sos={i:0,a:{}}; renderSosStep(); };
+}
+function hintText(id,a){
+  if(id==="mir") return "Гнилостный запах характерен для протея. Устойчив к ампициллину, доксициклину, клиндамицину и азитромицину.";
+  if(id==="aer") return a.signs&&a.signs.includes("blue") ? "Сине-зелёный гной и сладковатый запах: признаки синегнойной палочки. Устойчива ко всем препаратам домашней аптечки." : "Найдена у таксы 13 лет. Устойчива ко всем 5 препаратам исследования.";
+  if(id==="pse") return "Стафилококк собак. Устойчив к ампициллину, клиндамицину и азитромицину.";
+  if(id==="fae") return "Найден у кошки. Устойчив к 4 из 5 препаратов, кроме ампициллина.";
+  return "";
+}
+const strip = b => `<span class="mini-strip" title="Ампициллин, гентамицин, доксициклин, клиндамицин, азитромицин">${ABX.map(x=>`<span class="${b.ast[x.id][1]}"></span>`).join("")}</span>`;
+
+/* ================== ТАЙМЕР ОБРАБОТКИ РАНЫ ================== */
+const STEPS = [
+  ["Если сильно кровит, прижмите рану чистой салфеткой на 10 минут", null],
+  ["Включите тёплую проточную воду", null],
+  ["Намыльте рану и кожу вокруг обычным мылом", null],
+  ["Промывайте рану под струёй воды с мылом", "timer"],
+  ["Обработайте хлоргексидином 0,05% или мирамистином", null],
+  ["Наложите чистую повязку. Не заклеивайте рану плотно", null],
+  ["Не давайте антибиотики из домашней аптечки", null],
+  ["Запишите, чьё животное и привито ли оно. Езжайте в травмпункт", null],
+];
+const TOTAL = 15*60, MIN = 2*60;
+ROUTES.timer = ()=>{
+  const done = store.get("steps",[]);
+  view.innerHTML = `
+  <h1>Обработка раны</h1>
+  <p class="muted">Короткие шаги. Отмечайте галочкой то, что сделали.</p>
+  <div class="card" style="align-items:center">
+    <div class="timer-wrap">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="86" fill="none" stroke="var(--surface-2)" stroke-width="14"/>
+        <circle id="ring" cx="100" cy="100" r="86" fill="none" stroke="var(--accent)" stroke-width="14" stroke-linecap="round" transform="rotate(-90 100 100)" stroke-dasharray="${2*Math.PI*86}" stroke-dashoffset="${2*Math.PI*86}"/>
+        <g transform="rotate(${360*MIN/TOTAL-90} 100 100)"><rect x="180" y="96" width="14" height="8" rx="2" fill="var(--warn)"/></g>
+      </svg>
+      <div class="timer-read"><div><div class="tt" id="tt">15:00</div><div class="small muted" id="tsub">промывание водой с мылом</div></div></div>
+    </div>
+    <div class="row" style="justify-content:center;width:100%">
+      <button class="btn" id="tStart">Старт</button>
+      <button class="btn ghost" id="tReset">Сбросить</button>
+    </div>
+    <p class="small muted" style="text-align:center">Отметка на 2:00: минимум по данным исследования. 15 минут: рекомендация памяток по профилактике бешенства при укусах.</p>
+  </div>
+  <div class="stack" id="steps">${STEPS.map(([t,k],i)=>`<button class="check" data-i="${i}" aria-pressed="${done.includes(i)}"><span class="cb">${done.includes(i)?'<svg width="16" height="16"><use href="#i-tick"/></svg>':""}</span><span><span class="n">Шаг ${i+1}</span><br><span class="ct">${t}</span></span></button>`).join("")}</div>
+  <details><summary>Подробнее: протокол из исследования</summary>
+    <div class="stack" style="margin-top:10px">
+      <p>«При укусах и царапинах промыть рану водой с мылом не менее 2 минут, обработать хлоргексидином 0,05% или мирамистином (спирт и перекись слабо активны против грамотрицательной флоры). При воспалении — к врачу.» <span class="muted small">(Работа, раздел 8)</span></p>
+      <p><b>Почему не работают домашние таблетки?</b> «Популярные препараты домашней аптечки (азитромицин, клиндамицин) оказались неэффективны против 83–100% выделенных штаммов.» <span class="muted small">(Работа, раздел 7)</span></p>
+      <p class="small muted">Памятки Роспотребнадзора и медучреждений по бешенству: обильно промыть водой с мылом не менее 15 минут; иммуноглобулин против бешенства вводят как можно раньше, не позднее 3 суток.</p>
+    </div>
+  </details>
+  <button class="btn ghost" id="clearSteps">Очистить отметки</button>
+  ${DISCLAIMER}`;
+  view.querySelectorAll(".check").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i; let d=store.get("steps",[]); d=d.includes(i)?d.filter(x=>x!==i):[...d,i]; store.set("steps",d);
+    const on=d.includes(i); b.setAttribute("aria-pressed",on); b.querySelector(".cb").innerHTML=on?'<svg width="16" height="16"><use href="#i-tick"/></svg>':"";
+    if(STEPS[i][1]==="timer" && on && !(timerState&&timerState.running)) startTimer();
+  });
+  $("#clearSteps").onclick=()=>{ store.set("steps",[]); render(); };
+  $("#tStart").onclick=()=>{ if(timerState&&timerState.running) pauseTimer(); else startTimer(); };
+  $("#tReset").onclick=()=>{ resetTimer(); };
+  paintTimer();
+};
+let wakeLock=null;
+function startTimer(){
+  if(!timerState) timerState={left:TOTAL};
+  timerState.running=true; timerState.end=Date.now()+timerState.left*1000;
+  try{ navigator.wakeLock && navigator.wakeLock.request("screen").then(l=>wakeLock=l).catch(()=>{}); }catch(e){}
+  clearInterval(timerState.iv); timerState.iv=setInterval(tick,250); tick();
+}
+function pauseTimer(){ timerState.running=false; clearInterval(timerState.iv); timerState.left=Math.max(0,Math.round((timerState.end-Date.now())/1000)); paintTimer(); try{wakeLock&&wakeLock.release();}catch(e){} }
+function resetTimer(){ if(timerState) clearInterval(timerState.iv); timerState=null; paintTimer(); }
+function tick(){
+  if(!timerState) return;
+  const left = Math.max(0,Math.round((timerState.end-Date.now())/1000));
+  const prev = timerState.left; timerState.left=left;
+  if(prev> TOTAL-MIN && left<=TOTAL-MIN) toast("2 минуты: минимум выполнен. Продолжайте до 15 минут");
+  if(left===0){ timerState.running=false; clearInterval(timerState.iv); toast("Готово! Переходите к шагу 5"); }
+  paintTimer();
+}
+function paintTimer(){
+  const tt=$("#tt"); if(!tt) return;
+  const left = timerState?timerState.left:TOTAL; const m=Math.floor(left/60), s=left%60;
+  tt.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  const C=2*Math.PI*86; $("#ring").setAttribute("stroke-dashoffset", C*(left/TOTAL));
+  const el=TOTAL-left;
+  $("#tsub").textContent = left===0?"промывание завершено": el>=MIN?"минимум 2 мин выполнен":"промывание водой с мылом";
+  $("#tStart").textContent = timerState&&timerState.running?"Пауза":(timerState&&left<TOTAL&&left>0?"Продолжить":"Старт");
+}
+
+/* ================== УМНЫЙ СКАНЕР АПТЕЧКИ ================== */
+let scanCtx = {scenario:"dog", q:""};
+ROUTES.scan = ()=>{
+  view.innerHTML = `
+  <h1>Умный сканер аптечки</h1>
+  <p class="muted">Введите название лекарства из домашней аптечки: действующее вещество или торговое название.</p>
+  <div class="stack">
+    <span class="eyebrow">Ситуация</span>
+    <div class="chips" id="scen">
+      ${[["dog","Укус или царапина собаки"],["cat","Укус или царапина кошки"],["lick","Облизывание ранки"]].map(([v,l])=>`<button class="chip" data-v="${v}" aria-pressed="${scanCtx.scenario===v}">${l}</button>`).join("")}
+    </div>
+  </div>
+  <form class="search" id="sform"><input id="sq" type="search" placeholder="Например: Сумамед" autocomplete="off" value="${esc(scanCtx.q)}" aria-label="Название лекарства"><button class="btn" type="submit">Проверить</button></form>
+  <div class="chips">${["Сумамед","Далацин","Ампициллин","Юнидокс","Амоксиклав","Мирамистин"].map(x=>`<button class="chip qk">${x}</button>`).join("")}</div>
+  <div id="sres" class="stack"></div>
+  <p class="small muted">Сканирование штрих-кода упаковки появится в мобильной версии: код будет сверяться с Государственным реестром лекарственных средств.</p>
+  ${DISCLAIMER}`;
+  view.querySelectorAll("#scen .chip").forEach(c=>c.onclick=()=>{ scanCtx.scenario=c.dataset.v; view.querySelectorAll("#scen .chip").forEach(x=>x.setAttribute("aria-pressed",x===c)); runScan(); });
+  view.querySelectorAll(".qk").forEach(c=>c.onclick=()=>{ $("#sq").value=c.textContent; runScan(); });
+  $("#sform").onsubmit=e=>{ e.preventDefault(); runScan(); };
+  if(scanCtx.q) runScan();
+};
+function findDrug(q){
+  q=q.trim().toLowerCase().replace(/ё/g,"е"); if(!q) return null;
+  const norm=s=>s.toLowerCase().replace(/ё/g,"е");
+  return DRUGS.find(d=>d.names.some(n=>norm(n)===q)) || DRUGS.find(d=>d.names.some(n=>norm(n).startsWith(q)||q.startsWith(norm(n)))) || DRUGS.find(d=>d.names.some(n=>norm(n).includes(q)));
+}
+function runScan(){
+  const q=$("#sq").value; scanCtx.q=q; const out=$("#sres"); const d=findDrug(q);
+  if(!q.trim()){ out.innerHTML=""; return; }
+  if(!d){ out.innerHTML = alertBox("a","Препарат не найден в базе",`Проверьте написание или введите действующее вещество (оно указано на упаковке мелким шрифтом). В любом случае: не принимайте антибиотик после укуса без назначения врача.`); return; }
+  const ids = scanCtx.scenario==="cat" ? CAT_BACT : DOG_BACT; const who = scanCtx.scenario==="cat"?"кошек":"собак";
+  const action = `<b>Что делать:</b> промыть рану водой с мылом (минимум 2 минуты, при укусе до 15), обработать хлоргексидином или мирамистином, ехать в травмпункт: там решат вопрос о прививке от бешенства и столбняка.`;
+  if(d.antiseptic){
+    out.innerHTML = alertBox(d.key==="ok"?"s":"w", `${d.inn}: ${d.key==="ok"?"это антисептик, его можно использовать":"слабое средство"}`, `${d.note}<br><br>${action}`) + `<a class="btn ghost block" href="#timer">Открыть таймер обработки</a>`;
+    return;
+  }
+  if(!d.tested && !d.key){
+    out.innerHTML = alertBox("w",`${d.inn}: нет данных исследования`,`${d.note}<br><br>${action}`); return;
+  }
+  const abx=A(d.key); const sN=countS(d.key,ids), n=ids.length;
+  const works = ids.filter(id=>B(id).ast[d.key][1]==="S"), fails = ids.filter(id=>B(id).ast[d.key][1]==="R");
+  const dangerFails = fails.filter(id=>B(id).danger>=2);
+  const risk = sN/n<=0.34?"высокий":sN/n<0.67?"средний":"ниже среднего";
+  const kind = sN===0||sN/n<0.5 ? "r" : "w";
+  let title = d.tested ? `${d.inn} (${abx.cls})` : `${d.inn}: оценка по классу «${d.byClass}»`;
+  let head = sN===0 ? `Этот препарат <b>не подействовал ни на одну</b> из бактерий из пасти ${who} в исследовании.`
+    : `${d.tested?"Препарат":"Ближайший изученный препарат, "+abx.name.toLowerCase()+","} подавил <b>${sN} из ${n}</b> видов бактерий из пасти ${who}${works.length?` (${works.map(id=>"<i>"+B(id).lat+"</i>").join(", ")})`:""}.`;
+  if(dangerFails.length) head += ` Против главных угроз (${dangerFails.map(id=>"<i>"+B(id).lat+"</i>").join(", ")}) он бесполезен.`;
+  if(d.key==="gen") head += ` Гентамицин токсичен для почек и слуха и вводится только по назначению врача. Для самолечения не подходит.`;
+  out.innerHTML = `
+    ${alertBox(kind, title, `${d.note?d.note+"<br><br>":""}${head}<br><br><b>Риск заражения при самолечении: ${risk}.</b>`)}
+    <div class="card"><span class="eyebrow">${d.tested?"Данные теста (диаметр зоны, мм)":"Данные для "+abx.name.toLowerCase()+" (диаметр зоны, мм)"}</span>
+      <div class="bars">${ids.map(id=>{const b=B(id), z=b.ast[d.key]; return `<div class="bar-row"><i>${b.lat}</i><div class="cell ${z[1]}" style="width:${Math.max(28,Math.min(100,z[0]/32*100))}%">${z[0]}</div><span class="pill ${z[1]==="S"?"s":"r"}">${z[1]==="S"?"S · действует":"R · устойчив"}</span></div>`;}).join("")}</div>
+      <p class="small muted">Диско-диффузионный метод, критерии EUCAST. Выборка: 4 животных, 6 штаммов.</p>
+    </div>
+    ${alertBox("a","Действие",action)}`;
+}
+
+/* ================== СИМПТОМ-ЧЕКЕР ================== */
+const SYMS = [
+  ["putrid","Гнилостный запах из раны"],["blue","Сине-зелёный гной или сладковатый запах"],["pus","Жёлто-зелёный гной"],["swell","Отёк и боль усиливаются"],
+  ["red","Покраснение вокруг раны расширяется"],["fever","Температура выше 38 °C"],["streak","Красные полосы от раны"],["uti","Боль и жжение при мочеиспускании"],
+];
+let symSel=[];
+ROUTES.symptoms = ()=>{
+  view.innerHTML = `
+  <h1>Симптом-чекер</h1>
+  <p class="muted">Отметьте, что вы видите после укуса, царапины или облизывания. Приложение подскажет, какие бактерии из исследования могут быть причиной и каких лекарств избегать.</p>
+  <div class="opts" id="syms">${SYMS.map(([v,l])=>`<button class="opt" data-v="${v}" aria-pressed="${symSel.includes(v)}"><span class="box">${symSel.includes(v)?'<svg width="14" height="14"><use href="#i-tick"/></svg>':""}</span><span>${l}</span></button>`).join("")}</div>
+  <div id="symres" class="stack"></div>
+  ${DISCLAIMER}`;
+  view.querySelectorAll("#syms .opt").forEach(b=>b.onclick=()=>{ const v=b.dataset.v; symSel=symSel.includes(v)?symSel.filter(x=>x!==v):[...symSel,v]; ROUTES.symptoms(); });
+  const out=$("#symres"); if(!symSel.length) return;
+  let html="";
+  if(symSel.includes("streak")||(symSel.includes("fever")&&symSel.length>1)) html+=alertBox("r","Срочно к врачу или звоните 103","Красные полосы или температура вместе с признаками воспаления раны означают, что инфекция распространяется.");
+  else html+=alertBox("w","Нужен врач в ближайшее время","Признаки воспаления раны. Попросите врача сделать бакпосев с тестом на чувствительность к антибиотикам.");
+  const card=(id,why,avoid)=>{const b=B(id); return `<div class="card"><div class="row"><span class="bug-dot" style="width:36px;height:36px;background:${b.color}22;color:${b.color}"><svg width="20" height="20"><use href="#i-micro"/></svg></span><div style="flex:1;min-width:0"><b><i>${b.lat}</i></b> <span class="small muted">${b.ru}</span></div>${strip(b)}</div><p>${why}</p><p><b>Не принимайте самостоятельно:</b> ${avoid}.</p><a class="small" href="#kb-${id}">Подробнее о бактерии</a></div>`;};
+  if(symSel.includes("putrid")) html+=card("mir","Гнилостный запах + рана после укуса: возможен <i>Proteus mirabilis</i>. В исследовании протей давал выраженный гнилостный запах культуры.","доксициклин и другие тетрациклины, ампициллин и пенициллины, азитромицин, клиндамицин");
+  if(symSel.includes("blue")) html+=card("aer","Сине-зелёный пигмент и сладковатый запах: признаки синегнойной палочки. Устойчива ко всем 5 препаратам исследования.","любые антибиотики из домашней аптечки: ни один не подействовал");
+  if(["pus","swell","red"].some(x=>symSel.includes(x))) html+=card("pse","Гной, отёк и покраснение после укуса собаки часто связаны со стафилококками. <i>S. pseudintermedius</i> вызывает у людей трудноизлечимые раны.","азитромицин, клиндамицин, ампициллин");
+  if(symSel.includes("uti")) html+=alertBox("a","Инфекция мочевыводящих путей","Возбудителями ИМП могут быть <i>E. faecalis</i>, <i>P. mirabilis</i> и <i>S. saprophyticus</i>: все они найдены в пасти питомцев в исследовании. Обратитесь к врачу и сдайте посев мочи.");
+  html+=`<p class="small muted">Подсказки основаны на культуральных признаках из исследования. Точно определит возбудителя только бакпосев.</p>`;
+  out.innerHTML=html;
+};
+
+/* ================== БАЗА ЗНАНИЙ ================== */
+ROUTES.kb = ()=>{
+  const lvl=["","Низкая","Средняя","Высокая"], col=["","s","w","r"];
+  view.innerHTML = `
+  <h1>Кто живёт в пасти питомца?</h1>
+  <p class="muted">6 видов бактерий, выделенных из ротовой полости 4 клинически здоровых животных в лаборатории РНИМУ им. Н. И. Пирогова.</p>
+  <div class="legend"><span style="--c:var(--s)">действует антибиотик</span><span style="--c:var(--r)">устойчива</span><span class="muted">порядок: амп · гент · докс · клинд · азитр</span></div>
+  <div class="stack">${[...BACT].sort((a,b)=>b.danger-a.danger).map(b=>`
+    <a class="card bug" href="#kb-${b.id}">
+      <span class="bug-dot" style="background:${b.color}22;color:${b.color}"><svg width="22" height="22"><use href="#i-micro"/></svg></span>
+      <span style="min-width:0"><b><i>${b.lat}</i></b><br><span class="small muted">${b.ru} · ${b.gram}</span><br><span class="pill ${col[b.danger]}" style="margin-top:4px">Опасность для человека: ${lvl[b.danger]}</span></span>
+      ${strip(b)}
+    </a>`).join("")}</div>
+  <a class="btn ghost" href="#data">Тепловая карта резистентности</a>
+  ${DISCLAIMER}`;
+};
+ROUTES.kbitem = (id)=>{
+  const b=B(id); if(!b){ go("kb"); return; }
+  const r=ABX.filter(x=>b.ast[x.id][1]==="R").length;
+  view.innerHTML = `
+  <div class="stack"><span class="eyebrow">${b.gram} · ${b.shape}</span><h1><i>${b.full}</i></h1><p class="muted">${b.ru}</p></div>
+  ${b.danger===3?alertBox("r","Важно",b.id==="aer"?"Устойчива ко ВСЕМ препаратам домашней аптечки. При ране с сине-зелёным гноем нужен срочный визит к врачу.":"Устойчив к 4 из 5 препаратов. Не лечите рану антибиотиками наугад."):""}
+  ${b.id==="pse"?alertBox("r","Важно","Не боится обычных антибиотиков: в исследовании устойчив к азитромицину, клиндамицину и ампициллину. По российским данным устойчивость к макролидам и линкозамидам 60–70%."):""}
+  <div class="card"><h2>Где найдена</h2><div class="animals">${ANIMALS.map((n,i)=>`<div class="${b.hosts[i]?"on":""}">${n}</div>`).join("")}</div></div>
+  <div class="card"><h2>Чем опасна для человека</h2><p>${b.human}</p><p class="muted">${b.about}</p></div>
+  <div class="card"><h2>Профиль резистентности</h2><p class="small muted">Устойчива к ${r} из 5 препаратов. Цифры: диаметр зоны подавления роста, мм.</p>
+    <div class="bars">${ABX.map(x=>{const z=b.ast[x.id]; return `<div class="bar-row"><span>${x.name}</span><div class="cell ${z[1]}" style="width:${Math.max(28,Math.min(100,z[0]/32*100))}%">${z[0]}</div><span class="pill ${z[1]==="S"?"s":"r"}">${z[1]}</span></div>`;}).join("")}</div></div>
+  <div class="card"><h2>Как выглядит в лаборатории</h2><p>${b.lab}</p></div>
+  <a class="btn ghost" href="#kb">Все бактерии</a>
+  ${DISCLAIMER}`;
+};
+
+/* ================== РЕЗУЛЬТАТЫ ИССЛЕДОВАНИЯ ================== */
+ROUTES.data = ()=>{
+  const SURVEY=[
+    ["Задумываетесь о риске заражения от питомца?",[["часто",48],["скорее нет",32],["невозможно",20]]],
+    ["Разрешаете облизывать лицо и руки?",[["никогда",36],["скорее нет",40],["да, часто",24]]],
+    ["Проверяете ротовую полость питомца?",[["регулярно",28],["редко",44],["никогда",28]]],
+    ["Знаете о патогенах в слюне?",[["знают",20],["смутно",56],["не знают",24]]],
+    ["Моете руки после контакта?",[["всегда",36],["от случая к случаю",48],["нет",16]]],
+  ];
+  const sc=["var(--s)","var(--warn)","var(--r)"];
+  view.innerHTML = `
+  <h1>Результаты исследования</h1>
+  <p class="muted">Грекова В. А., 2026. Лаборатория молекулярной микробиологии РНИМУ им. Н. И. Пирогова.</p>
+  <div class="card">
+    <h2>Тепловая карта антибиотикорезистентности</h2>
+    <div class="legend"><span style="--c:var(--s)">S: чувствительный</span><span style="--c:var(--r)">R: резистентный</span><span>цифры: зона подавления, мм</span></div>
+    <div class="hm-scroll"><div class="hm">
+      <div></div>${BACT.map(b=>`<div class="h">${b.lat.replace(" ","<br>")}<br>(${b.gram})</div>`).join("")}
+      ${ABX.map(x=>`<div class="rl">${x.name}<small>${x.cls}</small></div>${BACT.map(b=>`<div class="c ${b.ast[x.id][1]}">${b.ast[x.id][0]}<small>${b.ast[x.id][1]}</small></div>`).join("")}`).join("")}
+    </div></div>
+  </div>
+  <div class="card">
+    <h2>Соотношение S и R</h2>
+    <div class="pie-row">
+      <svg viewBox="0 0 42 42" width="120" height="120" role="img" aria-label="67% резистентность, 33% чувствительность">
+        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--s)" stroke-width="8"/>
+        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="var(--r)" stroke-width="8" stroke-dasharray="66.67 33.33" transform="rotate(-90 21 21)"/>
+      </svg>
+      <div class="stack">
+        <div><b class="mono" style="font-size:26px;color:var(--r)">67%</b><br><span class="small muted">резистентность, 20 из 30 пар</span></div>
+        <div><b class="mono" style="font-size:26px;color:var(--s)">33%</b><br><span class="small muted">чувствительность, 10 из 30 пар</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Сколько штаммов подавил препарат</h2>
+    <div class="bars">${ABX.map(x=>{const n=countS(x.id,BACT.map(b=>b.id)); return `<div class="bar-row" style="grid-template-columns:110px 1fr 40px"><span>${x.name}</span><div style="background:var(--surface-2);border-radius:6px;height:22px;overflow:hidden"><div style="width:${n/6*100}%;height:100%;background:var(--s);border-radius:6px"></div></div><b class="mono">${n}/6</b></div>`;}).join("")}</div>
+    <p class="small muted">Гентамицин подавил больше всего штаммов, но он токсичен и не подходит для самолечения.</p>
+  </div>
+  <div class="card">
+    <h2>Изоляты эпидемиологической значимости</h2>
+    ${["aer","mir","fae"].map(id=>{const b=B(id); const src=ANIMALS[b.hosts.indexOf(1)]; return `<a class="bug" href="#kb-${id}"><span class="bug-dot" style="background:${b.color}22;color:${b.color}"><svg width="22" height="22"><use href="#i-micro"/></svg></span><span><b><i>${b.lat}</i></b><br><span class="small muted">${src}</span></span>${strip(b)}</a>`;}).join("")}
+  </div>
+  <div class="card">
+    <h2>Опрос владельцев</h2><p class="small muted">35 владельцев, ветклиника «Василёк», Москва. Только 20% знают о патогенах в слюне.</p>
+    ${SURVEY.map(([q,arr])=>`<div class="survey-q"><b class="small">${q}</b><div class="stackbar">${arr.map(([l,v],i)=>`<div style="width:${v}%;background:${sc[i]}" title="${l}: ${v}%">${v}%</div>`).join("")}</div><div class="legend">${arr.map(([l,v],i)=>`<span style="--c:${sc[i]}">${l}</span>`).join("")}</div></div>`).join("")}
+  </div>
+  <p class="small muted">Ограничения: выборка 4 животных, идентификация предварительная (фенотипическая). Для окончательного вывода нужны ПЦР и секвенирование 16S рРНК, выборка 20–30 животных.</p>
+  ${DISCLAIMER}`;
+};
+
+/* ================== ПОЧЕМУ ЭТО ОПАСНО (ONE HEALTH) ================== */
+ROUTES.onehealth = ()=>{
+  view.innerHTML = `
+  <h1>Почему мы переживаем из-за пасти собаки?</h1>
+  <p>Концепция <b>«Единое здоровье»</b> (One Health) говорит: здоровье людей, животных и окружающей среды связано. Её продвигают ВОЗ, ФАО, ВОЗЖ и ЮНЕП.</p>
+  <div class="card oh">
+    <svg viewBox="0 0 340 300" role="img" aria-label="Схема: путь бактерии от животного к человеку, в больницу и в окружающую среду">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--r)"/></marker></defs>
+      <path class="flow" d="M95 70 C150 40 190 40 245 70" fill="none" stroke="var(--r)" stroke-width="3" marker-end="url(#ar)"/>
+      <path class="flow" d="M265 110 C285 160 270 190 240 220" fill="none" stroke="var(--r)" stroke-width="3" marker-end="url(#ar)"/>
+      <path class="flow" d="M185 245 C150 255 130 255 105 240" fill="none" stroke="var(--r)" stroke-width="3" marker-end="url(#ar)"/>
+      <path class="flow" d="M70 205 C55 160 55 130 70 110" fill="none" stroke="var(--r)" stroke-width="3" marker-end="url(#ar)"/>
+      <g font-family="Onest,system-ui,sans-serif" text-anchor="middle">
+        <circle cx="65" cy="80" r="38" fill="var(--accent-soft)"/><text x="65" y="78" font-size="13" font-weight="700" fill="var(--ink)">Питомец</text><text x="65" y="94" font-size="10" fill="var(--muted)">резервуар</text>
+        <circle cx="275" cy="80" r="38" fill="var(--accent-soft)"/><text x="275" y="78" font-size="13" font-weight="700" fill="var(--ink)">Человек</text><text x="275" y="94" font-size="10" fill="var(--muted)">укус, слюна</text>
+        <circle cx="220" cy="245" r="38" fill="var(--r-soft)"/><text x="220" y="243" font-size="13" font-weight="700" fill="var(--ink)">Больница</text><text x="220" y="259" font-size="10" fill="var(--muted)">не лечится</text>
+        <circle cx="75" cy="235" r="38" fill="var(--s-soft)"/><text x="75" y="233" font-size="13" font-weight="700" fill="var(--ink)">Среда</text><text x="75" y="249" font-size="10" fill="var(--muted)">парки, стоки</text>
+        <text x="170" y="36" font-size="10" fill="var(--r)" font-weight="700">бактерии + гены</text>
+        <text x="170" y="160" font-size="11" fill="var(--muted)">гены устойчивости</text><text x="170" y="174" font-size="11" fill="var(--muted)">на плазмидах</text>
+      </g>
+    </svg>
+  </div>
+  <div class="card"><h2>Как это работает</h2>
+    <p>Гены устойчивости к антибиотикам «записаны» на мобильных элементах: плазмидах, транспозонах, интегронах. Они передаются между бактериями <b>разных видов</b>. Бактерия из пасти бульдога может передать такой ген вашей кишечной палочке, и обычная инфекция у вас перестанет лечиться.</p>
+    <p>Бесконтрольные антибиотики в ветеринарии и дома работают как отбор: выживают самые устойчивые.</p>
+  </div>
+  <div class="tiles">
+    <div class="tile"><b class="mono" style="font-size:24px">75%</b><span>новых инфекций человека имеют зоонозное происхождение</span></div>
+    <div class="tile"><b class="mono" style="font-size:24px">1,27 млн</b><span>смертей в год в мире связаны с устойчивостью к антибиотикам (ВОЗ)</span></div>
+    <div class="tile"><b class="mono" style="font-size:24px">10 млн</b><span>смертей в год прогнозируют к 2050 г.</span></div>
+    <div class="tile"><b class="mono" style="font-size:24px">80%</b><span>собак и кошек старше 5 лет имеют болезни зубов</span></div>
+  </div>
+  <div class="card"><h2>Закон и стратегия в России</h2><p class="small">ФЗ № 492-ФЗ «О биологической безопасности в Российской Федерации». Стратегия предупреждения распространения антимикробной резистентности до 2030 г. (распоряжение Правительства РФ № 2214-р).</p></div>
+  ${DISCLAIMER}`;
+};
+
+/* ================== КАРТА БИОБЕЗОПАСНОСТИ (прототип) ================== */
+const DISTRICTS = [ // схематичная раскладка округов Москвы; base — модельные (демо) значения
+  {id:"szao",n:"СЗАО",x:30,y:20,  dogs:3,bins:3},{id:"sao",n:"САО",x:120,y:10,dogs:4,bins:2},{id:"svao",n:"СВАО",x:210,y:20,dogs:4,bins:2},
+  {id:"zao",n:"ЗАО",x:20,y:110,  dogs:3,bins:3},{id:"cao",n:"ЦАО",x:120,y:105,dogs:2,bins:4},{id:"vao",n:"ВАО",x:220,y:110,dogs:4,bins:2},
+  {id:"yuzao",n:"ЮЗАО",x:30,y:200,dogs:3,bins:3},{id:"yuao",n:"ЮАО",x:120,y:200,dogs:4,bins:2},{id:"yuvao",n:"ЮВАО",x:210,y:200,dogs:5,bins:1},
+];
+let mapMode="risk", mapSel="yuvao";
+function districtRisk(d,rep){ // индекс 0–100
+  const r = rep[d.id]||{dirty:0,nobin:0,waste:0};
+  const complaints = r.dirty*1 + r.nobin*1.5 + r.waste*2;
+  const score = d.dogs*10 + (5-d.bins)*8 + Math.min(40, complaints*4);
+  return Math.min(100, Math.round(score));
+}
+const riskLevel = s => s>=65?["Опасная зона","var(--r)","r"]: s>=45?["Есть риск","var(--warn)","w"]:["Спокойно","var(--s)","s"];
+ROUTES.map = ()=>{
+  const rep = store.get("reports",{yuvao:{dirty:3,nobin:2,waste:1},sao:{dirty:1,nobin:1,waste:0}});
+  const sel = DISTRICTS.find(d=>d.id===mapSel);
+  view.innerHTML = `
+  <h1>Карта биобезопасности</h1>
+  <p class="muted small">One Health в мегаполисе. Прототип: схема округов Москвы и <b>демо-данные</b>. В рабочей версии здесь будут Яндекс Карты и открытые данные data.mos.ru.</p>
+  <div class="seg" role="group" aria-label="Слой карты"><button data-m="risk" aria-pressed="${mapMode==="risk"}">Риски</button><button data-m="info" aria-pressed="${mapMode==="info"}">Инфо</button><button data-m="city" aria-pressed="${mapMode==="city"}">Панель для мэрии</button></div>
+  ${mapMode!=="city"?`<div class="map-wrap"><svg viewBox="0 0 310 290" role="img" aria-label="Схема округов Москвы">
+    ${DISTRICTS.map(d=>{ const s=districtRisk(d,rep), [lbl,c]=riskLevel(s); const fill= mapMode==="risk"?c:"var(--accent-soft)";
+      return `<g class="district" data-id="${d.id}" tabindex="0" role="button" aria-label="${d.n}">
+        <rect x="${d.x}" y="${d.y}" width="84" height="80" rx="14" fill="${fill}" fill-opacity="${mapMode==="risk"?0.85:1}" stroke="${d.id===mapSel?"var(--ink)":"transparent"}" stroke-width="3"/>
+        <text x="${d.x+42}" y="${d.y+36}" text-anchor="middle" font-family="Unbounded,system-ui" font-size="13" font-weight="700" fill="${mapMode==="risk"?"#fff":"var(--ink)"}">${d.n}</text>
+        <text x="${d.x+42}" y="${d.y+56}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="${mapMode==="risk"?"#fff":"var(--muted)"}">${mapMode==="risk"?s:("площадок "+(d.dogs*7))}</text></g>`; }).join("")}
+  </svg></div>
+  ${mapMode==="risk"?`<div class="legend"><span style="--c:var(--s)">Зелёный: спокойно</span><span style="--c:var(--warn)">Жёлтый: есть риск</span><span style="--c:var(--r)">Красный: опасная зона</span></div>`:""}
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2>${sel.n}</h2><span class="pill ${riskLevel(districtRisk(sel,rep))[2]}">${riskLevel(districtRisk(sel,rep))[0]} · ${districtRisk(sel,rep)}</span></div>
+    <p class="small muted">Сообщите о проблеме рядом с вами. Жалобы попадают на панель для городских служб и повышают индекс риска района.</p>
+    <div class="grid2"><button class="btn ghost" data-r="dirty">Здесь грязно</button><button class="btn ghost" data-r="nobin">Здесь нет урны</button></div>
+    <button class="btn ghost" data-r="waste">Не убирают за собаками</button>
+    <p class="small muted mono">Жалобы: грязно ${(rep[sel.id]||{}).dirty||0} · нет урны ${(rep[sel.id]||{}).nobin||0} · отходы ${(rep[sel.id]||{}).waste||0}</p>
+  </div>`:
+  `<div class="card"><h2>Сводка для городских служб</h2><p class="small muted">Округа, отсортированные по индексу риска. Индекс = плотность выгула × 10 + дефицит урн × 8 + жалобы жителей (до 40 баллов).</p>
+   <div style="overflow-x:auto"><table class="t"><thead><tr><th>Округ</th><th>Жалобы</th><th>Индекс</th><th>Вероятный риск</th></tr></thead><tbody>
+   ${[...DISTRICTS].sort((a,b)=>districtRisk(b,rep)-districtRisk(a,rep)).map(d=>{const r=rep[d.id]||{dirty:0,nobin:0,waste:0}; const s=districtRisk(d,rep); return `<tr><td><b>${d.n}</b></td><td class="num">${r.dirty+r.nobin+r.waste}</td><td class="num"><span class="pill ${riskLevel(s)[2]}">${s}</span></td><td class="small">${s>=65?"биологические отходы: рост риска <i>E. faecalis</i>, <i>P. mirabilis</i>":s>=45?"наблюдение":"—"}</td></tr>`;}).join("")}
+   </tbody></table></div></div>
+   ${alertBox("a","Пример сигнала","«В ЮВАО жители жалуются на биологические отходы на площадках выгула: растёт риск энтеробактерий и энтерококков. Рекомендуется установить урны и дезинфицировать площадки».")}`}
+  <button class="btn ghost" id="mapReset">Сбросить демо-жалобы</button>
+  ${DISCLAIMER}`;
+  view.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{ mapMode=b.dataset.m; ROUTES.map(); });
+  view.querySelectorAll(".district").forEach(g=>{ const f=()=>{ mapSel=g.dataset.id; ROUTES.map(); }; g.onclick=f; g.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();f();} }; });
+  view.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ const r=store.get("reports",rep); r[mapSel]=r[mapSel]||{dirty:0,nobin:0,waste:0}; r[mapSel][b.dataset.r]++; store.set("reports",r); toast("Спасибо! Отметка добавлена"); ROUTES.map(); });
+  $("#mapReset").onclick=()=>{ store.set("reports",{}); ROUTES.map(); };
+};
+
+/* ================== ПРОВЕРЬ СЕБЯ ================== */
+const QUIZ = [
+  {id:"q1",q:"Считаете ли вы возможным заражение от домашнего животного при близком контакте?",o:[["Да",0],["Скорее да, чем нет",5],["Нет",15]],
+   tip:{2:"Заражение возможно: в пасти клинически здоровых питомцев найдены синегнойная палочка, протей и энтерококк."}},
+  {id:"q2",q:"Разрешаете ли вы питомцу облизывать ваше лицо или руки?",o:[["Да",25],["Нет",0]],
+   tip:{0:"Вы разрешаете собаке лизать лицо. В исследовании 67% пар «бактерия — антибиотик» оказались устойчивыми: бактерии из пасти питомца часто не боятся обычных лекарств. Пожалуйста, не позволяйте этого, особенно если на губах или коже есть ранки."}},
+  {id:"q3",q:"Проверяете ли вы состояние ротовой полости питомца у ветеринара?",o:[["Да, регулярно",0],["Только при необходимости",10],["Нет",20]],
+   tip:{1:"Осмотр у ветеринара-стоматолога нужен не реже раза в год. Зубной камень создаёт ниши, где бактерии в 10–1000 раз менее чувствительны к антибиотикам.",2:"Осмотр у ветеринара-стоматолога нужен не реже раза в год. Зубной камень создаёт ниши, где бактерии в 10–1000 раз менее чувствительны к антибиотикам."}},
+  {id:"q4",q:"Знаете ли вы о патогенных микроорганизмах, которые могут содержаться в слюне животных?",o:[["Да, хорошо осведомлён(а)",0],["Слышал(а), но знаю мало",5],["Нет, не знаю",10]],
+   tip:{1:"Загляните в раздел «Кто живёт в пасти питомца?»: там 6 бактерий из исследования.",2:"Загляните в раздел «Кто живёт в пасти питомца?»: там 6 бактерий из исследования."}},
+  {id:"q5",q:"Соблюдаете ли вы правила гигиены после контакта с животным (мытьё рук, обработка царапин)?",o:[["Всегда",0],["Иногда",10],["Нет",15]],
+   tip:{1:"Мойте руки после общения с питомцем и перед едой. Царапины промывайте водой с мылом и обрабатывайте хлоргексидином.",2:"Мойте руки после общения с питомцем и перед едой. Царапины промывайте водой с мылом и обрабатывайте хлоргексидином."}},
+  {id:"q6",q:"Давали ли вы себе или питомцу антибиотик без назначения врача?",o:[["Нет",0],["Да",15]],
+   tip:{1:"Азитромицин и клиндамицин «наугад» не работают против 83–100% штаммов из исследования и помогают бактериям становиться устойчивее."}},
+];
+let quizA = store.get("quiz",{});
+ROUTES.quiz = ()=>{
+  const answered = QUIZ.filter(q=>quizA[q.id]!==undefined).length;
+  if(answered===QUIZ.length) return quizResult();
+  view.innerHTML = `
+  <h1>Проверь себя</h1>
+  <p class="muted">Вопросы из анкеты исследования, которую заполнили 35 владельцев. Ответы остаются только на этом устройстве.</p>
+  <div class="progress"><i style="width:${answered/QUIZ.length*100}%"></i></div>
+  ${QUIZ.map(q=>`<div class="card"><b>${q.q}</b><div class="opts">${q.o.map(([l],i)=>`<button class="opt" data-q="${q.id}" data-i="${i}" aria-pressed="${quizA[q.id]===i}"><span class="box">${quizA[q.id]===i?'<svg width="14" height="14"><use href="#i-tick"/></svg>':""}</span><span>${l}</span></button>`).join("")}</div></div>`).join("")}
+  ${DISCLAIMER}`;
+  view.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{ quizA[b.dataset.q]=+b.dataset.i; store.set("quiz",quizA); const y=window.scrollY; ROUTES.quiz(); window.scrollTo(0,y); });
+};
+function quizResult(){
+  const score = QUIZ.reduce((s,q)=>s+q.o[quizA[q.id]][1],0);
+  const [lbl,,cls] = score>=50?["Высокий","","r"]:score>=25?["Средний","","w"]:["Низкий","","s"];
+  const tips = QUIZ.map(q=>q.tip[quizA[q.id]]).filter(Boolean);
+  view.innerHTML = `
+  <h1>Ваш результат</h1>
+  <div class="card" style="align-items:flex-start"><span class="eyebrow">Индекс личного зоонозного риска</span><div class="row"><b class="mono" style="font-size:40px">${score}</b><span class="muted">из 100</span><span class="pill ${cls}">${lbl} риск</span></div>
+  <div class="progress"><i style="width:${score}%;background:var(--${cls==="s"?"s":cls==="w"?"warn":"r"})"></i></div></div>
+  ${tips.length?tips.map(t=>alertBox("w","Обратите внимание",t)).join(""):alertBox("s","Отлично","Ваши привычки снижают риск. Расскажите о них близким.")}
+  <div class="card"><b>Для сравнения</b><p class="small">В опросе исследования хорошо осведомлены о зоонозных рисках только 20% владельцев, 56% знают фрагментарно, 24% не знают совсем.</p></div>
+  <div class="wiz-nav"><button class="btn ghost" id="qr">Пройти заново</button><a class="btn" href="#pet">Завести дневник питомца</a></div>
+  ${DISCLAIMER}`;
+  $("#qr").onclick=()=>{ quizA={}; store.set("quiz",{}); ROUTES.quiz(); };
+}
+
+/* ================== ДНЕВНИК ПИТОМЦА И НАПОМИНАНИЯ ================== */
+const today = ()=>new Date(new Date().toDateString());
+const iso = d=>{ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
+const addDays=(d,n)=>new Date(d.getTime()+n*864e5);
+const fmt = d=>d.toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
+const BREEDS = ["Французский бульдог","Такса","Шотландская вислоухая","Беспородная","Другая"];
+function examplePet(){ const t=today(); return {example:true,name:"Ася",species:"собака",breed:"Такса",birth:iso(addDays(t,-13*365-40)),clean:iso(addDays(t,-48)),vet:iso(addDays(t,-370)),abx:""}; }
+function ageYears(p){ if(!p.birth) return null; return (today()-new Date(p.birth))/(365.25*864e5); }
+function cleanInterval(p){ // Правила А и В
+  const age=ageYears(p);
+  if(age!==null && age>12) return [30,"возраст старше 12 лет: интервал сокращён до 1 месяца"];
+  if(p.breed==="Французский бульдог"||p.breed==="Такса") return [60,`порода «${p.breed}» в группе риска: интервал 60 дней`];
+  if(age!==null && age>5) return [60,"возраст старше 5 лет: интервал 60 дней"];
+  return [90,"стандартный интервал 90 дней"];
+}
+function petAlerts(p){
+  const t=today(), out=[]; const [ci,why]=cleanInterval(p);
+  const breedGen = p.breed==="Такса"?"вашей таксы":p.breed==="Французский бульдог"?"вашего французского бульдога":`питомца ${p.name||""}`.trim();
+  if(p.clean){ const due=addDays(new Date(p.clean),ci); const days=Math.round((t-new Date(p.clean))/864e5);
+    out.push({kind:"clean", due, overdue:t>=due, text:`Привет! Прошло ${days} дн. с последней чистки зубов у ${breedGen}. Пора повторить процедуру, чтобы избежать накопления бактерий вроде <i>P. aeruginosa</i>. Записаться к ветеринару?`}); }
+  else out.push({kind:"clean",due:t,overdue:true,text:`Отметьте дату последней чистки зубов, чтобы получать напоминания.`});
+  const age=ageYears(p);
+  if(age!==null && age>12) out.push({kind:"age",due:t,overdue:true,text:`Внимание: ${p.name||"вашему питомцу"} ${Math.floor(age)} лет. У 80% животных старше 5 лет есть болезни зубов. Рекомендуем чистить зубы раз в месяц и проверить дёсны.`});
+  if(p.vet){ const due=addDays(new Date(p.vet),365); out.push({kind:"vet",due,overdue:t>=due,text:`Пора на ежегодный осмотр${p.name?" для "+p.name:""}. Последний визит: ${fmt(new Date(p.vet))}.`}); }
+  if(p.abx){ out.push({kind:"abx",due:t,overdue:true,text:`Вы были у ветеринара ${fmt(new Date(p.abx))}. Врач назначил курс таблеток. Давайте антибиотик строго по схеме врача и после еды. Азитромицин может быть неэффективен против бактерий из пасти: уточните у врача результаты теста на чувствительность.`}); }
+  return {list:out, ci, why};
+}
+ROUTES.pet = ()=>{
+  let p = store.get("pet",null); if(!p) p=examplePet();
+  const {list,ci,why} = petAlerts(p);
+  const age=ageYears(p);
+  view.innerHTML = `
+  <h1>Дневник питомца</h1>
+  ${p.example?alertBox("a","Это пример","Заполнен профиль-пример: такса 13 лет, как в исследовании. Измените поля, чтобы завести своего питомца."):""}
+  <div class="card">
+    <div class="grid2">
+      <label class="field">Кличка<input id="pName" value="${esc(p.name||"")}"></label>
+      <label class="field">Вид<select id="pSpecies">${["собака","кошка"].map(s=>`<option ${p.species===s?"selected":""}>${s}</option>`).join("")}</select></label>
+    </div>
+    <label class="field">Порода<select id="pBreed">${BREEDS.map(b=>`<option ${p.breed===b?"selected":""}>${b}</option>`).join("")}</select></label>
+    <div class="grid2">
+      <label class="field">Дата рождения<input type="date" id="pBirth" value="${p.birth||""}"></label>
+      <label class="field">Последняя чистка зубов<input type="date" id="pClean" value="${p.clean||""}"></label>
+    </div>
+    <label class="field">Последний визит к ветеринару<input type="date" id="pVet" value="${p.vet||""}"></label>
+    ${age!==null?`<p class="small muted">Возраст: <b class="mono">${age.toFixed(1)}</b> лет. Интервал чистки: <b class="mono">${ci}</b> дн. (${why}).</p>`:""}
+  </div>
+  <div class="grid2">
+    <button class="btn" id="aClean">Почистил зубы</button>
+    <button class="btn" id="aVet">Был у врача</button>
+  </div>
+  <button class="btn ghost" id="aAbx">Врач назначил антибиотик</button>
+  <div class="card"><h2>Статус</h2>
+    ${list.filter(x=>x.kind!=="age"&&x.kind!=="abx").map(x=>`<div class="status-row"><span>${x.kind==="clean"?"Чистка зубов":"Ежегодный осмотр"}<br><span class="small muted">следующая дата: ${fmt(x.due)}</span></span><span class="pill ${x.overdue?"r":"s"}">${x.overdue?"пора":"в порядке"}</span></div>`).join("")}
+  </div>
+  <span class="eyebrow">Уведомления</span>
+  ${list.filter(x=>x.overdue).map(x=>`<div class="notif"><span class="ni"><svg width="18" height="18" style="color:var(--accent-ink)"><use href="#i-bell"/></svg></span><div><div class="nh"><b style="color:var(--ink)">PetBioScan</b><span>сейчас</span></div><p>${x.text}</p></div></div>`).join("") || `<p class="muted small">Новых напоминаний нет.</p>`}
+  <p class="small muted">В прототипе напоминания показываются внутри приложения. В мобильной версии они приходят как push-уведомления.</p>
+  ${DISCLAIMER}`;
+  const save=()=>{ const np={name:$("#pName").value,species:$("#pSpecies").value,breed:$("#pBreed").value,birth:$("#pBirth").value,clean:$("#pClean").value,vet:$("#pVet").value,abx:p.abx||""}; store.set("pet",np); ROUTES.pet(); };
+  ["#pName","#pSpecies","#pBreed","#pBirth","#pClean","#pVet"].forEach(s=>$(s).onchange=save);
+  $("#aClean").onclick=()=>{ $("#pClean").value=iso(today()); save(); toast("Чистка зубов отмечена сегодня"); };
+  $("#aVet").onclick=()=>{ $("#pVet").value=iso(today()); save(); toast("Визит к врачу отмечен сегодня"); };
+  $("#aAbx").onclick=()=>{ p.abx=iso(today()); save(); toast("Напоминание о курсе добавлено"); };
+};
+
+render();
+</script>
+
+</html>
